@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Monthly Summary 🇸🇮</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<h2>Monthly Summary</h2>
+
+<select id="month"></select>
+<p>Budget €<span id="b"></span></p>
+<p>Spent €<span id="s"></span></p>
+<p>Profit €<span id="p"></span></p>
+<p>Loss €<span id="l"></span></p>
+
+<canvas id="c"></canvas>
+<a href="index.html">⟵ Back</a>
+
+<script>
+for(let i=0;i<12;i++){
+  let o=document.createElement("option");
+  o.value=i;o.text=new Date(0,i).toLocaleString("en",{month:"long"});
+  month.appendChild(o);
+}
+month.value=new Date().getMonth();
+
+function load(){
+  let B=0,S=0,P=0,L=0,cat=[0,0,0,0];
+  Object.keys(localStorage).forEach(k=>{
+    let d=new Date(k);
+    if(!isNaN(d)&&d.getMonth()==month.value){
+      let x=JSON.parse(localStorage[k]);
+      let s=x.e.reduce((a,b)=>a+b,0);
+      B+=x.b; S+=s;
+      s<=x.b?P+=x.b-s:L+=s-x.b;
+      x.e.forEach((v,i)=>cat[i]+=v);
+    }
+  });
+  b.textContent=B;s.textContent=S;p.textContent=P;l.textContent=L;
+  new Chart(c,{type:"pie",data:{labels:["Shopping","Boni","Food","Groceries"],datasets:[{data:cat}]}})
+}
+month.onchange=load;
+load();
+</script>
+</body>
+</html>
