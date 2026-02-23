@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Budget 🇸🇮</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+  --bg:#f4f6f8; --card:#fff; --text:#000;
+}
+.dark {
+  --bg:#0f172a; --card:#020617; --text:#e5e7eb;
+}
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui;
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+.card {
+  background:var(--card);
+  width:100%;
+  max-width:420px;
+  padding:20px;
+  border-radius:14px;
+}
+.row { display:flex; justify-content:space-between; margin:8px 0; }
+input { width:120px; }
+button { padding:6px 10px; }
+</style>
+</head>
+
+<body>
+<div class="card">
+  <button onclick="toggleDark()">🌙</button>
+  <h2 id="week"></h2>
+
+  <div class="row">
+    <button onclick="changeWeek(-1)">⟵</button>
+    <button onclick="changeWeek(1)">⟶</button>
+  </div>
+
+  <div class="row"><span>Budget €</span><input id="budget"></div>
+  <div class="row"><span>Shopping</span><input class="e"></div>
+  <div class="row"><span>Boni</span><input class="e"></div>
+  <div class="row"><span>Food</span><input class="e"></div>
+  <div class="row"><span>Groceries</span><input class="e"></div>
+
+  <p>Total: €<span id="spent">0</span></p>
+  <p id="result"></p>
+
+  <canvas id="chart"></canvas>
+
+  <a href="month.html">📅 Monthly View</a>
+</div>
+
+<script>
+/* ---------- PIN LOCK ---------- */
+let pin = localStorage.getItem("pin");
+if(!pin){
+  pin = prompt("Set a 4-digit PIN");
+  localStorage.setItem("pin", pin);
+}else{
+  let attempt = prompt("Enter PIN");
+  if(attempt !== pin) document.body.innerHTML="🔒 Locked";
+}
+
+/* ---------- DARK MODE ---------- */
+if(localStorage.dark==="1") document.body.classList.add("dark");
+function toggleDark(){
+  document.body.classList.toggle("dark");
+  localStorage.dark = document.body.classList.contains("dark")?"1":"0";
+}
+
+/* ---------- WEEK LOGIC ---------- */
+let monday = new Date();
+monday.setDate(monday.getDate() - ((monday.getDay()+6)%7));
+
+const ctx = document.getElementById("chart");
+let chart;
+
+function load(){
+  const key = monday.toISOString().split("T")[0];
+  week.textContent = "Week of "+monday.toLocaleDateString("en-GB");
+  const d = JSON.parse(localStorage.getItem(key))||{b:15,e:[0,0,0,0]};
+  budget.value=d.b;
+  document.querySelectorAll(".e").forEach((i,n)=>i.value=d.e[n]);
+  calc();
+}
+
+function calc(){
+  let e=[...document.querySelectorAll(".e")].map(i=>+i.value);
+  let total=e.reduce((a,b)=>a+b,0);
+  spent.textContent=total.toFixed(2);
+  let diff=budget.value-total;
+  result.textContent=diff>=0?`Profit €${diff}`:`Loss €${-diff}`;
+  const key=monday.toISOString().split("T")[0];
+  localStorage.setItem(key,JSON.stringify({b:+budget.value,e}));
+
+  if(chart) chart.destroy();
+  chart=new Chart(ctx,{
+    type:"pie",
+    data:{labels:["Shopping","Boni","Food","Groceries"],datasets:[{data:e}]}
+  });
+}
+
+function changeWeek(n){ monday.setDate(monday.getDate()+7*n); load(); }
+document.querySelectorAll("input").forEach(i=>i.oninput=calc);
+load();
+
+/* ---------- PWA ---------- */
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>
